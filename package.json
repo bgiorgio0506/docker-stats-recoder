@@ -10,8 +10,11 @@
   "license": "ISC",
   "dependencies": {
     "@types/watch": "^1.0.2",
+    "assert": "^2.0.0",
     "child_process": "^1.0.2",
     "csv": "^5.5.0",
-    "death": "^1.1.0"
+    "death": "^1.1.0",
+    "fs-extra": "^10.0.0",
+    "path": "^0.12.7"
   }
 }

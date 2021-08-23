@@ -1,41 +1,59 @@
-import { exec }  from 'child_process'
+import { exec }  from 'child_process';
+import { IStats } from './statsInterface';
+import fs from 'fs';
+import fsExtra from 'fs-extra';
+import path from 'path';
+
 const csv = require('csv');
 var ON_DEATH = require('death'); //this is intentionally ugly
+var records:Array<Buffer>= [];
+const file = path.resolve('C:\\Users\\User\\Desktop\\Progetti\\POSCONDev\\docker-stats-recoder', 'test\\out\\test_data_1.csv');
 
-let stdOutArr:Array<String>= [];
+let stdOutArr:Array<IStats>= [];
 
 
-let testInterval = setInterval(()=>{
-    exec('docker stats --format "{{.CPUPerc}}\t{{.MemUsage}}" --no-stream src_flightnetcore_1',(err, stdout)=>{
-        if(err){
-            clearInterval(testInterval);
-            throw err
-        }
-        else stdOutArr.push(stdout);
+function startTest() {
+  console.log('Starting test')
+  let testInterval = setInterval(() => {
+    exec('docker stats --format "{{.CPUPerc}}\t{{.MemUsage}}" --no-stream src_flightnetcore_1', (err, stdout) => {
+      if (err) {
+        clearInterval(testInterval);
+        throw err
+      }
+      else {
+          let splitStats:Array<string> = stdout.split(' ');
+          stdOutArr.push({
+            cpu: splitStats[0],
+            memory: splitStats[1]
+          })
+      }
     })
-}, 5000)
+  }, 5000)
+}
+
+startTest();
+
 
  
 ON_DEATH(function(signal, err) {
-    console.log("Grcefully stopping CTRL+C");
-    console.log(stdOutArr);
+    console.log("Gracefully stopping CTRL+C");
     csv.generate({
-        delimiter: ' ',
-        length: stdOutArr.length
-    }).pipe(csv.parse({
-        delimiter: ' '
-      }))
-      // Transform each value into uppercase
-      .pipe(csv.transform(function(record){
-         return record.map(function(value){
-           return value.toUpperCase()
-         });
-      }))
-      // Convert the object into a stream
-      .pipe(csv.stringify({
-        quoted: true
-      }))
-      // Print the CSV stream to stdout
-      .pipe(process.stdout)
-    process.exit();
-})
+      length: stdOutArr.length
+    }).on('readable', function(){
+      let record:Buffer;
+      while(record = this.read()){
+        records.push(record)
+      }
+    })
+    .on('error', function(err){
+      console.error(err)
+    })
+    .on('end', function(){
+      console.log(records, file)
+      fsExtra.ensureFileSync(file);
+      records.map((buffer) => {
+        fs.appendFileSync(file, buffer.toString('utf8'))
+      })
+      process.exit();
+    })
+  });
