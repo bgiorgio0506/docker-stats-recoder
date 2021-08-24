@@ -46,8 +46,10 @@ var ObjectsToCsv = require('objects-to-csv');
 var ON_DEATH = require('death'); //this is intentionally ugly
 var file = path_1.default.resolve('C:\\Users\\User\\Desktop\\Progetti\\POSCONDev\\docker-stats-recoder', 'test\\out\\test_data_1.csv');
 var stdOutArr = [];
+var startTestTime;
+var endTestTime;
 function startTest() {
-    console.log('Starting test');
+    startTestTime = Date.now();
     var testInterval = setInterval(function () {
         child_process_1.exec('docker stats --format "{{.CPUPerc}}\t{{.MemUsage}}" --no-stream src_flightnetcore_1', function (err, stdout) {
             if (err) {
@@ -58,7 +60,8 @@ function startTest() {
                 var splitStats = stdout.split('\t');
                 stdOutArr.push({
                     cpu: splitStats[0],
-                    memory: splitStats[1]
+                    memory: splitStats[1],
+                    timestamp: Date.now()
                 });
             }
         });
@@ -71,9 +74,13 @@ ON_DEATH(function (signal, err) {
         return __generator(this, function (_d) {
             switch (_d.label) {
                 case 0:
+                    endTestTime = Date.now();
+                    stdOutArr = stdOutArr.map(function (data) {
+                        data.timestamp = data.timestamp - startTestTime;
+                        return data;
+                    });
                     console.log("Gracefully stopping CTRL+C");
                     csv = new ObjectsToCsv(stdOutArr);
-                    console.log(stdOutArr);
                     fs_extra_1.default.ensureFileSync(file);
                     _b = (_a = fs_extra_1.default).writeFileSync;
                     _c = [file];
