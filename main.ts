@@ -14,7 +14,7 @@ let endTestTime:number ;
 
 function startTest() {
   startTestTime = Date.now();
-  console.log('Starting Test with interval 5000ms')
+  console.log('Starting Test with interval 1000ms')
   let testInterval = setInterval(() => {
     exec('docker stats --format "{{.CPUPerc}}\t{{.MemUsage}}\t{{.NetIO}}" --no-stream src_flightnetcore_1', (err, stdout) => {
       if (err) {
@@ -31,7 +31,7 @@ function startTest() {
           })
       }
     })
-  }, 5000)
+  }, 1000)
 }
 
 startTest();
@@ -41,10 +41,10 @@ startTest();
 ON_DEATH(async function(signal, err) {
     endTestTime = Date.now();
     stdOutArr = stdOutArr.map((data:IStats)=>{
-        data.timestamp = (data.timestamp - startTestTime)/1000;
+        data.timestamp = data.timestamp - startTestTime;
         return data;
     })
-    console.log('Server test ended with duration: ' + ((endTestTime-startTestTime)/1000)+ 'ms exporting to csv' )
+    console.log('Server test ended with duration: ' + ((endTestTime-startTestTime)/1000)+ 's exporting to csv' )
     const csv = new ObjectsToCsv(stdOutArr);
       fsExtra.ensureFileSync(file);
       fsExtra.writeFileSync(file, await csv.toString());
