@@ -1,6 +1,5 @@
 import { exec }  from 'child_process';
 import { IStats } from './statsInterface';
-import fs from 'fs';
 import fsExtra from 'fs-extra';
 import path from 'path';
 
@@ -15,8 +14,9 @@ let endTestTime:number ;
 
 function startTest() {
   startTestTime = Date.now();
+  console.log('Starting Test with interval 5000ms')
   let testInterval = setInterval(() => {
-    exec('docker stats --format "{{.CPUPerc}}\t{{.MemUsage}}" --no-stream src_flightnetcore_1', (err, stdout) => {
+    exec('docker stats --format "{{.CPUPerc}}\t{{.MemUsage}}\t{{.NetIO}}" --no-stream src_flightnetcore_1', (err, stdout) => {
       if (err) {
         clearInterval(testInterval);
         throw err
@@ -26,6 +26,7 @@ function startTest() {
           stdOutArr.push({
             cpu: splitStats[0],
             memory: splitStats[1], 
+            netIo: splitStats[2],
             timestamp: Date.now()
           })
       }
@@ -40,10 +41,10 @@ startTest();
 ON_DEATH(async function(signal, err) {
     endTestTime = Date.now();
     stdOutArr = stdOutArr.map((data:IStats)=>{
-        data.timestamp = data.timestamp - startTestTime;
+        data.timestamp = (data.timestamp - startTestTime)/1000;
         return data;
     })
-    console.log("Gracefully stopping CTRL+C");
+    console.log('Server test ended with duration: ' + ((endTestTime-startTestTime)/1000)+ 'ms exporting to csv' )
     const csv = new ObjectsToCsv(stdOutArr);
       fsExtra.ensureFileSync(file);
       fsExtra.writeFileSync(file, await csv.toString());

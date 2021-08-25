@@ -50,8 +50,9 @@ var startTestTime;
 var endTestTime;
 function startTest() {
     startTestTime = Date.now();
+    console.log('Starting Test with interval 5000ms');
     var testInterval = setInterval(function () {
-        child_process_1.exec('docker stats --format "{{.CPUPerc}}\t{{.MemUsage}}" --no-stream src_flightnetcore_1', function (err, stdout) {
+        child_process_1.exec('docker stats --format "{{.CPUPerc}}\t{{.MemUsage}}\t{{.NetIO}}" --no-stream src_flightnetcore_1', function (err, stdout) {
             if (err) {
                 clearInterval(testInterval);
                 throw err;
@@ -61,6 +62,7 @@ function startTest() {
                 stdOutArr.push({
                     cpu: splitStats[0],
                     memory: splitStats[1],
+                    netIo: splitStats[2],
                     timestamp: Date.now()
                 });
             }
@@ -76,10 +78,10 @@ ON_DEATH(function (signal, err) {
                 case 0:
                     endTestTime = Date.now();
                     stdOutArr = stdOutArr.map(function (data) {
-                        data.timestamp = data.timestamp - startTestTime;
+                        data.timestamp = (data.timestamp - startTestTime) / 1000;
                         return data;
                     });
-                    console.log("Gracefully stopping CTRL+C");
+                    console.log('Server test ended with duration: ' + ((endTestTime - startTestTime) / 1000) + 'ms exporting to csv');
                     csv = new ObjectsToCsv(stdOutArr);
                     fs_extra_1.default.ensureFileSync(file);
                     _b = (_a = fs_extra_1.default).writeFileSync;
